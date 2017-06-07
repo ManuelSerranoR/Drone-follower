@@ -162,6 +162,8 @@ class MyAlgorithm(threading.Thread):
             az = errorX*0.01
 
             self.cmdvel.sendCMDVel(vx,0,vz,0,0,az)
+        else:
+            self.cmdvel.sendCMDVel(0.2,0,0,0,0,0.3)
 
         tmp = self.navdata.getNavdata()
         if tmp is not None:
@@ -169,3 +171,4 @@ class MyAlgorithm(threading.Thread):
             print ("Altitude: " +str(tmp.altd))
             print ("Vehicle: " +str(tmp.vehicle))
             print ("Battery %: " +str(tmp.batteryPercent))
+
