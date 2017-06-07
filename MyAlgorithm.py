@@ -59,31 +59,58 @@ class MyAlgorithm(threading.Thread):
 
     def execute(self):
         # Add your code here
-        #Pillando las imagenes
+
         imagenCamera = self.camera.getImage()
         imagenCopia = np.copy(imagenCamera)
         blur = cv2.blur(imagenCopia,(5,5))
-        cv2.imshow('imagenCamera',imagenCopia)
-        cv2.imshow('blur',blur)
+        #cv2.imshow('imagenCopia',imagenCopia)
+        #cv2.imshow('blur',blur)
 
         imgHsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
-
-        hMin=101
-        hMax=179
-        sMin=220
+        #imgRGB = cv2.cvtColor(imagenCopia, cv2.COLOR_BGR2RGB)
+        #cv2.imshow('imgRGB',imgRGB)
+        """
+        hMin=0
+        hMax=10
+        sMin=180
         sMax=255
-        vMin=126
+        vMin=180
         vMax=255
+        """
+        """
+        hMin=0
+        hMax=10
+        sMin=150
+        sMax=255
+        vMin=150
+        vMax=255
+        """
+        """
+        hMin=40
+        hMax=80
+        sMin=100
+        sMax=255
+        vMin=50
+        vMax=255
+        """
 
-        lower_red = np.array([hMin,sMin,vMin])
-        upper_red = np.array([hMax,sMax,vMax])
+
+        #lower_red = np.array([hMin,sMin,vMin])
+        #upper_red = np.array([hMax,sMax,vMax])
+
+        #really a blue filter
+        lower_red = np.array([110,50,50])
+        upper_red = np.array([130,255,255])
 
         filtroRojo = cv2.inRange(imgHsv, lower_red, upper_red)
         imgCopiaBW = np.copy(filtroRojo)
+        cv2.imshow('imgCopiaBW', imgCopiaBW)
 
         kernel = np.ones((5,5), np.uint8)
         imgDilate = cv2.dilate(imgCopiaBW, kernel, iterations=4)
         imgErosion = cv2.erode(imgDilate, kernel, iterations=4)
+
+        cv2.imshow('imgErosion', imgErosion)
 
         imgContornos, contours, hierarchy = cv2.findContours(imgErosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -96,11 +123,15 @@ class MyAlgorithm(threading.Thread):
             max_index = np.argmax(areas)
             cnt=contours[max_index]
             x, y, w, h = cv2.boundingRect(cnt)
-            imgFinal = cv2.rectangle(input_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            imagenCopiaRGB= cv2.cvtColor(imagenCopia, cv2.COLOR_BGR2RGB)
+            #imgFinal = cv2.rectangle(imagenCopiaRGB, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            #mouse rectangle position
+            imgFinal = cv2.rectangle(imagenCopiaRGB, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+            #image centre
+            imgFinal = cv2.rectangle(imagenCopiaRGB, (125, 85), (195, 155), (0, 255, 0), 1)
             cv2.imshow('imgFinal',imgFinal)
-
-        #cv2.waitKey(0)
-
 
 
         tmp = self.navdata.getNavdata()
