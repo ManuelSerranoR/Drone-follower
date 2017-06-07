@@ -12,6 +12,12 @@ from parallelIce.pose3dClient import Pose3DClient
 
 time_cycle = 80
 
+class PID:
+    def __init__(self, Kp, Kd):
+        self.Kp= Kp
+        self.Kd= Kd
+
+
 class MyAlgorithm(threading.Thread):
 
     def __init__(self, camera, navdata, pose, cmdvel, extra):
@@ -133,6 +139,29 @@ class MyAlgorithm(threading.Thread):
             imgFinal = cv2.rectangle(imagenCopiaRGB, (125, 85), (195, 155), (0, 255, 0), 1)
             cv2.imshow('imgFinal',imgFinal)
 
+            #Finished capturing the image. Now we proceed with the follower algorithm
+            #Aim points...
+            referenceX = 160
+            referenceY = 120
+            referenceZ = 80 #To be defined
+
+            realX = x + (w/2)
+            realY = y + (h/2)
+            realZ = w
+
+            errorX = referenceX - realX
+            errorY = referenceY - realY
+            errorZ = referenceZ - realZ
+
+            #PID_X = PID(10,10)
+            #PID_Y = PID()
+            #PID_Z = PID(1,1)
+
+            vz = errorY*0.016
+            vx = errorZ*0.034
+            az = errorX*0.01
+
+            self.cmdvel.sendCMDVel(vx,0,vz,0,0,az)
 
         tmp = self.navdata.getNavdata()
         if tmp is not None:
