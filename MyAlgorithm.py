@@ -85,21 +85,22 @@ class MyAlgorithm(threading.Thread):
 
         imagenCamera = self.camera.getImage()
         imagenCopia = np.copy(imagenCamera)
-        blur = cv2.blur(imagenCopia,(5,5))
-        #cv2.imshow('imagenCopia',imagenCopia)
-        #cv2.imshow('blur',blur)
+        imgRGB = cv2.cvtColor(imagenCopia, cv2.COLOR_BGR2RGB)
+        blur = cv2.blur(imgRGB,(5,5))
+        cv2.imshow('imagenCopia',imagenCopia)
+        cv2.imshow('blur',blur)
 
         imgHsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
         #imgRGB = cv2.cvtColor(imagenCopia, cv2.COLOR_BGR2RGB)
         #cv2.imshow('imgRGB',imgRGB)
-        """
-        hMin=0
-        hMax=10
-        sMin=180
-        sMax=255
-        vMin=180
-        vMax=255
-        """
+
+        hMin=2
+        hMax=11
+        sMin=155
+        sMax=215
+        vMin=105
+        vMax=170
+
         """
         hMin=0
         hMax=10
@@ -118,22 +119,22 @@ class MyAlgorithm(threading.Thread):
         """
 
 
-        #lower_red = np.array([hMin,sMin,vMin])
-        #upper_red = np.array([hMax,sMax,vMax])
+        lower_red = np.array([hMin,sMin,vMin])
+        upper_red = np.array([hMax,sMax,vMax])
 
         #really a blue filter
-        lower_red = np.array([110,50,50])
-        upper_red = np.array([130,255,255])
+        #lower_red = np.array([110,50,50])
+        #upper_red = np.array([130,255,255])
 
         filtroRojo = cv2.inRange(imgHsv, lower_red, upper_red)
         imgCopiaBW = np.copy(filtroRojo)
-        #cv2.imshow('imgCopiaBW', imgCopiaBW)
+        cv2.imshow('imgCopiaBW', imgCopiaBW)
 
         kernel = np.ones((5,5), np.uint8)
         imgDilate = cv2.dilate(imgCopiaBW, kernel, iterations=4)
         imgErosion = cv2.erode(imgDilate, kernel, iterations=4)
 
-        #cv2.imshow('imgErosion', imgErosion)
+        cv2.imshow('imgErosion', imgErosion)
 
         imgContornos, contours, hierarchy = cv2.findContours(imgErosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -165,7 +166,7 @@ class MyAlgorithm(threading.Thread):
             cv2.imshow('imgFinal',imgFinal)
             print("Anchura del drone (error de velocidad lineal):")
             print(w)
-            #Consideramos una anchura de 45 como distancia ideal
+            #Consideramos una anchura de 37 como distancia ideal
             errorVelocidad = (w - 37)
             print("errorVelocidad: "+str(errorVelocidad))
             errorAngular = centroMouseX - 160
@@ -181,6 +182,7 @@ class MyAlgorithm(threading.Thread):
             self.cmdvel.sendCMDVel(-Velocidad,0,-VAltura,0,0,-VAngular)
 
         else:
+            print("buscando drone")
             self.cmdvel.sendCMDVel(0.2,0,0,0,0,0.3)
 
 
