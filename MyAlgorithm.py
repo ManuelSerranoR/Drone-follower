@@ -11,6 +11,10 @@ from parallelIce.extra import Extra
 from parallelIce.pose3dClient import Pose3DClient
 
 time_cycle = 80
+
+aux1 = 0
+aux2 = 0
+
 class PID:
     def __init__(self, P, D, Derivator):
         self.Kp = P
@@ -31,6 +35,9 @@ class PID:
 
 class MyAlgorithm(threading.Thread):
 
+    aux1 = 0
+    aux2 = 0
+
     def __init__(self, camera, navdata, pose, cmdvel, extra):
         self.camera = camera
         self.navdata = navdata
@@ -39,9 +46,10 @@ class MyAlgorithm(threading.Thread):
         self.extra = extra
 
         #Contrladores PID
+        #MMMMMMMMMMMMMMMMMM (alguna ganancia cambiada)
         self.pidVelocidad = PID(0.043,0.025,0)
         self.pidAngular = PID(0.02,0.02,0)
-        self.pidAltura = PID(0.025,0.02,0)
+        self.pidAltura = PID(0.03,0.023,0)
 
 
         self.stop_event = threading.Event()
@@ -171,7 +179,8 @@ class MyAlgorithm(threading.Thread):
             print("errorVelocidad: "+str(errorVelocidad))
             errorAngular = centroMouseX - 160
             print("errorAngular: "+str(errorAngular))
-            errorAltura = centroMouseY - 120
+            #MMMMMMMMM (ahora el punto medio del drone en vertical es mas bajo)
+            errorAltura = centroMouseY - 150
             print("errorAltura: "+str(errorAltura))
 
             Velocidad = self.pidVelocidad.update(errorVelocidad)
@@ -183,9 +192,23 @@ class MyAlgorithm(threading.Thread):
 
         else:
             print("buscando drone")
-            self.cmdvel.sendCMDVel(0.2,0,0,0,0,0.3)
+            #MMMMMMMMM
+            print(self.pose.getZ())
+            if (aux1 == 1 and aux2 == 1):
+                if (self.pose.getZ() > 2):
+                    self.cmdvel.sendCMDVel(0.1,0,-0.35,0,0,0.5)
+                else:
+                    aux1 = 0
+                    aux2 = 0
 
-
+            elif (self.pose.getZ() > 4):
+                self.cmdvel.sendCMDVel(0.1,0,-0.35,0,0,0.5)
+                aux1 = 1
+            elif (self.pose.getZ() < 4):
+                self.cmdvel.sendCMDVel(0.1,0,0.35,0,0,0.5)
+                aux2 = 1
+            else:
+                self.cmdvel.sendCMDVel(0.2,0,0,0,0,0.3)
 
 
         tmp = self.navdata.getNavdata()
