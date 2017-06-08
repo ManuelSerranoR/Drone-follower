@@ -11,6 +11,23 @@ from parallelIce.extra import Extra
 from parallelIce.pose3dClient import Pose3DClient
 
 time_cycle = 80
+class PID:
+    def __init__(self, P, D, Derivator):
+        self.Kp = P
+        self.Kd = D
+        self.Derivator = Derivator
+
+    def update(self, feedback_error_actual):
+        print("Entrando en el pid, el error es: "+ str(feedback_error_actual))
+
+        self.valueP = feedback_error_actual * self.Kp
+        self.valueD = self.Kd * (feedback_error_actual - self.Derivator)
+        self.valuePID = self.valueP + self.valueD
+        self.Derivator = feedback_error_actual
+        print("valor del PID: "+ str(self.valuePID))
+
+        return (self.valuePID)
+
 
 class MyAlgorithm(threading.Thread):
 
@@ -20,6 +37,12 @@ class MyAlgorithm(threading.Thread):
         self.pose = pose
         self.cmdvel = cmdvel
         self.extra = extra
+
+        #Contrladores PID
+        self.pidVelocidad = PID(0.043,0.025,0)
+        self.pidAngular = PID(0.02,0.02,0)
+        self.pidAltura = PID(0.025,0.02,0)
+
 
         self.stop_event = threading.Event()
         self.kill_event = threading.Event()
@@ -104,23 +127,25 @@ class MyAlgorithm(threading.Thread):
 
         filtroRojo = cv2.inRange(imgHsv, lower_red, upper_red)
         imgCopiaBW = np.copy(filtroRojo)
-        cv2.imshow('imgCopiaBW', imgCopiaBW)
+        #cv2.imshow('imgCopiaBW', imgCopiaBW)
 
         kernel = np.ones((5,5), np.uint8)
         imgDilate = cv2.dilate(imgCopiaBW, kernel, iterations=4)
         imgErosion = cv2.erode(imgDilate, kernel, iterations=4)
 
-        cv2.imshow('imgErosion', imgErosion)
+        #cv2.imshow('imgErosion', imgErosion)
 
         imgContornos, contours, hierarchy = cv2.findContours(imgErosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         print("contornos:")
         print(len(contours))
 
+
         if (len(contours)>0):
 
             areas = [cv2.contourArea(c) for c in contours]
             max_index = np.argmax(areas)
+
             cnt=contours[max_index]
             x, y, w, h = cv2.boundingRect(cnt)
             imagenCopiaRGB= cv2.cvtColor(imagenCopia, cv2.COLOR_BGR2RGB)
@@ -131,7 +156,34 @@ class MyAlgorithm(threading.Thread):
 
             #image centre
             imgFinal = cv2.rectangle(imagenCopiaRGB, (125, 85), (195, 155), (0, 255, 0), 1)
+
+
+            centroMouseX= (x+x+w)/2
+            centroMouseY= (y+y+h)/2
+
+            cv2.circle(imgFinal,(centroMouseX,centroMouseY), 3, (0,255,255), 3)
             cv2.imshow('imgFinal',imgFinal)
+            print("Anchura del drone (error de velocidad lineal):")
+            print(w)
+            #Consideramos una anchura de 45 como distancia ideal
+            errorVelocidad = (w - 37)
+            print("errorVelocidad: "+str(errorVelocidad))
+            errorAngular = centroMouseX - 160
+            print("errorAngular: "+str(errorAngular))
+            errorAltura = centroMouseY - 120
+            print("errorAltura: "+str(errorAltura))
+
+            Velocidad = self.pidVelocidad.update(errorVelocidad)
+            VAngular = self.pidAngular.update(errorAngular)
+            VAltura = self.pidAltura.update(errorAltura)
+
+            print("velocidad lineal"+str(Velocidad))
+            self.cmdvel.sendCMDVel(-Velocidad,0,-VAltura,0,0,-VAngular)
+
+        else:
+            self.cmdvel.sendCMDVel(0.2,0,0,0,0,0.3)
+
+
 
 
         tmp = self.navdata.getNavdata()
