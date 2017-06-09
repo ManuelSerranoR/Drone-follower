@@ -11,6 +11,7 @@ from parallelIce.extra import Extra
 from parallelIce.pose3dClient import Pose3DClient
 
 time_cycle = 80
+
 class PID:
     def __init__(self, P, D, Derivator):
         self.Kp = P
@@ -31,6 +32,7 @@ class PID:
 
 class MyAlgorithm(threading.Thread):
 
+
     def __init__(self, camera, navdata, pose, cmdvel, extra):
         self.camera = camera
         self.navdata = navdata
@@ -39,9 +41,10 @@ class MyAlgorithm(threading.Thread):
         self.extra = extra
 
         #Contrladores PID
-        self.pidVelocidad = PID(0.043,0.025,0)
-        self.pidAngular = PID(0.02,0.02,0)
-        self.pidAltura = PID(0.025,0.02,0)
+
+        self.pidVelocidad = PID(0.045,0.034,0)
+        self.pidAngular = PID(0.02,0.025,0)
+        self.pidAltura = PID(0.03,0.026,0)
 
 
         self.stop_event = threading.Event()
@@ -87,19 +90,27 @@ class MyAlgorithm(threading.Thread):
         imagenCopia = np.copy(imagenCamera)
         imgRGB = cv2.cvtColor(imagenCopia, cv2.COLOR_BGR2RGB)
         blur = cv2.blur(imgRGB,(5,5))
-        cv2.imshow('imagenCopia',imagenCopia)
+        #cv2.imshow('imagenCopia',imagenCopia)
         cv2.imshow('blur',blur)
 
         imgHsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
         #imgRGB = cv2.cvtColor(imagenCopia, cv2.COLOR_BGR2RGB)
         #cv2.imshow('imgRGB',imgRGB)
-
+        """
         hMin=2
-        hMax=11
-        sMin=155
+        hMax=12
+        sMin=148
         sMax=215
-        vMin=105
+        vMin=102
         vMax=170
+        """
+        hMin=0
+        hMax=13
+        sMin=100
+        sMax=255
+        vMin=100
+        vMax=255
+
 
         """
         hMin=0
@@ -128,11 +139,11 @@ class MyAlgorithm(threading.Thread):
 
         filtroRojo = cv2.inRange(imgHsv, lower_red, upper_red)
         imgCopiaBW = np.copy(filtroRojo)
-        cv2.imshow('imgCopiaBW', imgCopiaBW)
+        #cv2.imshow('imgCopiaBW', imgCopiaBW)
 
-        kernel = np.ones((5,5), np.uint8)
-        imgDilate = cv2.dilate(imgCopiaBW, kernel, iterations=4)
-        imgErosion = cv2.erode(imgDilate, kernel, iterations=4)
+        kernel = np.ones((7,7), np.uint8)
+        imgDilate = cv2.dilate(imgCopiaBW, kernel, iterations=6)
+        imgErosion = cv2.erode(imgDilate, kernel, iterations=6)
 
         cv2.imshow('imgErosion', imgErosion)
 
@@ -171,7 +182,8 @@ class MyAlgorithm(threading.Thread):
             print("errorVelocidad: "+str(errorVelocidad))
             errorAngular = centroMouseX - 160
             print("errorAngular: "+str(errorAngular))
-            errorAltura = centroMouseY - 120
+            #(ahora el punto medio del drone en vertical es mas bajo)
+            errorAltura = centroMouseY - 150
             print("errorAltura: "+str(errorAltura))
 
             Velocidad = self.pidVelocidad.update(errorVelocidad)
@@ -183,8 +195,13 @@ class MyAlgorithm(threading.Thread):
 
         else:
             print("buscando drone")
-            self.cmdvel.sendCMDVel(0.2,0,0,0,0,0.3)
 
+            if (self.pose.getZ() <3):
+                print("altura menos que 3 metros")
+                self.cmdvel.sendCMDVel(0.1,0,0.35,0,0,0.6)
+            else:
+                print("altura menos que 3 metros")
+                self.cmdvel.sendCMDVel(0.1,0,-0.35,0,0,0.6)
 
 
 
@@ -193,4 +210,3 @@ class MyAlgorithm(threading.Thread):
             print ("State: " +str(tmp.state))
             print ("Altitude: " +str(tmp.altd))
             print ("Vehicle: " +str(tmp.vehicle))
-            print ("Battery %: " +str(tmp.batteryPercent))
